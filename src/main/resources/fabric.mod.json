@@ -14,19 +14,15 @@
 			"dev.evvie.waylandcraft.WaylandCraft"
 		],
 		"client": [
-			"dev.evvie.waylandcraft.WaylandCraftClient"
+			"dev.evvie.waylandcraft.WaylandCraft"
 		]
 	},
 	"mixins": [
-		"waylandcraft.mixins.json",
-		{
-			"config": "waylandcraft.client.mixins.json",
-			"environment": "client"
-		}
+		"waylandcraft.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=0.17.2",
-		"minecraft": "~1.21.8",
+		"minecraft": "~1.20.6",
 		"java": ">=21",
 		"fabric-api": "*"
 	}
