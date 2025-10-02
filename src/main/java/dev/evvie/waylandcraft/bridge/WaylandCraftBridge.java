@@ -23,7 +23,7 @@ public class WaylandCraftBridge {
 		return new WaylandCraftBridge(handle);
 	}
 	
-	private WLCToplevel getOrCreateToplevel(long handle) {
+	protected WLCToplevel getOrCreateToplevel(long handle) {
 		for(WLCToplevel toplevel : toplevels) {
 			if(toplevel.getHandle() == handle) return toplevel;
 		}
@@ -37,7 +37,7 @@ public class WaylandCraftBridge {
 		return toplevel;
 	}
 	
-	private WLCSurface getOrCreateSurface(long handle) {
+	protected WLCSurface getOrCreateSurface(long handle) {
 		for(WLCSurface surface : surfaces) {
 			if(surface.getHandle() == handle) return surface;
 		}
@@ -46,29 +46,62 @@ public class WaylandCraftBridge {
 		return surface;
 	}
 	
-	private void deleteNonExisting(long[] remainingHandles) {
+	private void deleteNonExistingToplevels(long[] remainingHandles) {
 		ArrayList<WLCToplevel> toplevels_new = new ArrayList<WLCToplevel>();
 		for(WLCToplevel toplevel : this.toplevels) {
 			if(ArrayUtils.contains(remainingHandles, toplevel.getHandle())) {
 				toplevels_new.add(toplevel);
 			}
 			else {
-				toplevel.takeHandle();
+				freeToplevel(this.instance, toplevel.takeHandle());
 			}
 		}
 		this.toplevels = toplevels_new;
 	}
 	
+	private void deleteUnvisitedSurfaces() {
+		ArrayList<WLCSurface> surfaces_new = new ArrayList<WLCSurface>();
+		for(WLCSurface surface : this.surfaces) {
+			if(surface.visited) {
+				surfaces_new.add(surface);
+			}
+			else {
+				freeSurface(this.instance, surface.takeHandle());
+			}
+		}
+		this.surfaces = surfaces_new;
+	}
+	
 	public void update() {
+		// Update wayland clients
 		update(this.instance);
 		
+		// Find all available toplevels and delete ones that no longer exist
 		long[] toplevel_handles = toplevels(instance);
-		deleteNonExisting(toplevel_handles);
+		deleteNonExistingToplevels(toplevel_handles);
 		
+		// Reset surface visited state
+		for(WLCSurface surface : surfaces) {
+			surface.visited = false;
+		}
+		
+		// Create new toplevels when necessary
+		// Update surface tree geometry of all toplevels
 		for(long handle : toplevel_handles) {
 			WLCToplevel toplevel = getOrCreateToplevel(handle);
 			WLCSurface root = toplevel.getSurfaceTree();
-			updateSurface(root);
+			updateSurfaceTree(root);
+		}
+		
+		// All surface trees have now been walked. Now delete all unvisited surfaces
+		deleteUnvisitedSurfaces();
+		
+		// Update all surface buffers
+		for(WLCToplevel toplevel : toplevels) {
+			WLCSurface root = toplevel.getSurfaceTree();
+			for(WLCSurface surface = root; surface != null; surface = surface.getNextChild()) {
+				updateSurfaceData(surface);
+			}
 		}
 	}
 	
@@ -86,6 +119,11 @@ public class WaylandCraftBridge {
 	
 	private static native long[] toplevels(long instance);
 	private static native long toplevelSurface(long instance, long handle);
-	private static native void updateSurface(WLCSurface surface);
+	private static native void updateSurfaceData(WLCSurface surface);
+	
+	private native void updateSurfaceTree(WLCSurface root);
+	
+	private static native void freeSurface(long instance, long handle);
+	private static native void freeToplevel(long instance, long handle);
 	
 }

@@ -17,7 +17,7 @@ use smithay::{
     },
 };
 use jni::{
-    objects::{JClass, JObject},
+    objects::{JClass, JObject, JValue},
     sys::{jlong, jstring, jarray, jsize, jint, jvalue},
     signature::{ReturnType, Primitive},
     JNIEnv,
@@ -124,6 +124,15 @@ fn get_all_handles<T>(vec: &mut Vec<Box<T>>) -> Vec<jlong>
         .collect()
 }
 
+// Remove element from list and free it
+fn remove_element<T>(vec: &mut Vec<Box<T>>, handle: jlong)
+    where T: Clone + PartialEq
+{
+    let ptr: *mut T = (handle as usize) as *mut T;
+    let elem: &mut T = unsafe { &mut *ptr };
+    vec.retain(|e| **e != *elem);
+}
+
 #[unsafe(no_mangle)]
 pub extern "system"
 fn Java_dev_evvie_waylandcraft_bridge_WaylandCraftBridge_toplevels<'l>(
@@ -156,7 +165,7 @@ fn jptr_to_wlsurface(ptr: jlong) -> &'static mut WlSurface {
 
 #[unsafe(no_mangle)]
 pub extern "system"
-fn Java_dev_evvie_waylandcraft_bridge_WaylandCraftBridge_updateSurface<'l>(
+fn Java_dev_evvie_waylandcraft_bridge_WaylandCraftBridge_updateSurfaceData<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
     obj: JObject<'l>
@@ -228,4 +237,53 @@ fn Java_dev_evvie_waylandcraft_bridge_WaylandCraftBridge_toplevelSurface<'l>(
     let surface: &WlSurface = toplevel.wl_surface();
 
     insert_get_handle(&mut instance.bridge.surfaces, surface)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system"
+fn Java_dev_evvie_waylandcraft_bridge_WaylandCraftBridge_updateSurfaceTree<'l>(
+    mut env: JNIEnv<'l>,
+    _bridge: JObject<'l>,
+    obj: JObject<'l>
+) {
+    let handle: jlong = env.get_field_unchecked(
+        &obj,
+        (WLCSurface_class, "handle", "J"),
+        ReturnType::Primitive(Primitive::Long)
+    ).unwrap().j().unwrap();
+
+    let _surface = jptr_to_wlsurface(handle);
+
+    // TODO: Implement tree walking
+
+    // Just mark root surface as visited for now
+    env.set_field_unchecked(
+        &obj,
+        (WLCSurface_class, "visited", "Z"),
+        JValue::Bool(1)
+    ).unwrap();
+}
+
+#[unsafe(no_mangle)]
+pub extern "system"
+fn Java_dev_evvie_waylandcraft_bridge_WaylandCraftBridge_freeSurface<'l>(
+    _env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    ptr: jlong,
+    handle: jlong
+) {
+    let instance = jptr_to_instance(ptr);
+    remove_element(&mut instance.bridge.surfaces, handle);
+}
+
+#[unsafe(no_mangle)]
+pub extern "system"
+fn Java_dev_evvie_waylandcraft_bridge_WaylandCraftBridge_freeToplevel<'l>(
+    _env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    ptr: jlong,
+    handle: jlong
+) {
+    let instance = jptr_to_instance(ptr);
+    remove_element(&mut instance.bridge.toplevels, handle);
 }

@@ -6,7 +6,11 @@ import dev.evvie.waylandcraft.BufferTexture;
 
 public class WLCSurface {
 	
+	// Set to zero when this surface no longer exists
 	private long handle;
+	
+	// Used by native code to tag used surfaces
+	protected boolean visited;
 	
 	@Nullable
 	private BufferTexture buffer = null;
@@ -14,8 +18,6 @@ public class WLCSurface {
 	// Either a child of this surface or one of its siblings
 	@Nullable
 	private WLCSurface nextChild = null;
-	
-	private long parentHandle = 0;
 	
 	@Nullable
 	private WLCSurface parent = null;
@@ -43,6 +45,10 @@ public class WLCSurface {
 		long old = this.handle;
 		this.handle = 0;
 		return old;
+	}
+	
+	public boolean isAlive() {
+		return handle != 0;
 	}
 	
 	protected void setNextChild(WLCSurface surface) {

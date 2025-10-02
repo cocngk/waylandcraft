@@ -24,6 +24,10 @@ public class WLCToplevel {
 		return old;
 	}
 	
+	public boolean isAlive() {
+		return handle != 0;
+	}
+	
 	protected void setSurface(WLCSurface surface) {
 		this.surface = surface;
 	}
