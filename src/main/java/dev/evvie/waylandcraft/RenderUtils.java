@@ -1,13 +1,11 @@
 package dev.evvie.waylandcraft;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.OptionalInt;
 import java.util.function.Supplier;
 
 import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.system.MemoryUtil;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
@@ -76,31 +74,6 @@ public class RenderUtils {
 		TextureManager textureManager = Minecraft.getInstance().getTextureManager();
 		AbstractTexture tex = textureManager.getTexture(res);
 		drawQuad(camera, OptionalInt.of(tex.getId()), shader, p1, p2, p3, p4, uv1, uv2, uv3, uv4, color, alpha);
-	}
-	
-	private static BufferTexture testTexture;
-	private static ByteBuffer testTextureData;
-	public static int getTestTexture(int offset) {
-		int width = 500;
-		int height = 500;
-		
-		if(testTexture == null) {
-			testTextureData = ByteBuffer.allocateDirect(width * height * 4);
-			testTexture = new BufferTexture(MemoryUtil.memAddress0(testTextureData), width, height, BufferTexture.FORMAT_XRGB8888);
-		}
-		
-		testTextureData.clear();
-		for(int i = 0; i < width * height; i++) {
-			int j = i % width - offset;
-			int k = i / width;
-			// For little endian ARGB 0123, for big endian RGBA 2103
-			testTextureData.put(i * 4 + 0, (byte) (int) ((k / 50) * 50.0f / ((height / 50) * 50.0f) * 255.0f));
-			testTextureData.put(i * 4 + 1, (byte) ((k % 50) * 5));
-			testTextureData.put(i * 4 + 2, (byte) ((j % 50) * 5));
-			testTextureData.put(i * 4 + 3, (byte) 255);
-		}
-		testTexture.update();
-		return testTexture.getId();
 	}
 	
 	public static void drawTexturedQuad(Camera camera, ResourceLocation res, Vec3 p1, Vec3 p2, Vec3 p3, Vec3 p4, Vec2 uv1, Vec2 uv2, Vec2 uv3, Vec2 uv4) {

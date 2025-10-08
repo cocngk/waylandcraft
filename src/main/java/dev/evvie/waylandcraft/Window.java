@@ -119,10 +119,10 @@ public class Window {
 		
 		ViewportSource src = surface.getViewportSource();
 		if(src != null) {
-			crop_x1 = (float) (src.x / buf.width());
-			crop_y1 = (float) (src.y / buf.height());
-			crop_x2 = (float) ((src.x + src.width) / buf.width());
-			crop_y2 = (float) ((src.y + src.height) / buf.height());
+			crop_x1 = (float) (src.x / buf.width);
+			crop_y1 = (float) (src.y / buf.height);
+			crop_x2 = (float) ((src.x + src.width) / buf.width);
+			crop_y2 = (float) ((src.y + src.height) / buf.height);
 		}
 		
 		Camera camera = ctx.camera();
@@ -140,14 +140,14 @@ public class Window {
 		vertexBuf.vertex(mat, (float) br.x, (float) br.y, (float) br.z).color(1.0f, 1.0f, 1.0f, 1.0f).uv(crop_x2, crop_y2).endVertex();
 		vertexBuf.vertex(mat, (float) tr.x, (float) tr.y, (float) tr.z).color(1.0f, 1.0f, 1.0f, 1.0f).uv(crop_x2, crop_y1).endVertex();
 		
-		if(buf.getFormat() == BufferTexture.FORMAT_XRGB8888) {
+		if(buf.format == BufferTexture.FORMAT_XRGB8888) {
 			RenderSystem.setShader(RenderUtils::getPositionColorTexShader);
 		}
-		else if(buf.getFormat() == BufferTexture.FORMAT_ARGB8888) {
+		else if(buf.format == BufferTexture.FORMAT_ARGB8888) {
 			RenderSystem.setShader(GameRenderer::getPositionColorTexShader);
 		}
 		
-		RenderSystem.setShaderTexture(0, buf.getId());
+		RenderSystem.setShaderTexture(0, buf.id);
 		RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 		tesselator.end();
 		
