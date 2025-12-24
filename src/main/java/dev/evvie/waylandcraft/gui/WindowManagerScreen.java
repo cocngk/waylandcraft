@@ -1,6 +1,8 @@
-package dev.evvie.waylandcraft;
+package dev.evvie.waylandcraft.gui;
 
 import java.awt.Color;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 import org.joml.Matrix4f;
 
@@ -10,9 +12,13 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 
+import dev.evvie.waylandcraft.BufferTexture;
+import dev.evvie.waylandcraft.RenderUtils;
+import dev.evvie.waylandcraft.WaylandCraft;
+import dev.evvie.waylandcraft.bridge.WLCAbstractWindow;
 import dev.evvie.waylandcraft.bridge.WLCSurface;
-import dev.evvie.waylandcraft.bridge.WLCToplevel;
 import dev.evvie.waylandcraft.bridge.WLCSurface.ViewportSource;
+import dev.evvie.waylandcraft.bridge.WLCToplevel;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
@@ -21,10 +27,29 @@ import net.minecraft.network.chat.Component;
 public class WindowManagerScreen extends Screen {
 	
 	private WaylandCraft wlc;
+	private SelectorWidget selector;
 	
-	protected WindowManagerScreen(WaylandCraft wlc) {
+	private final int margin = 5;
+	private final int topMargin = 50;
+	private final int rootHeight = 1080;
+	
+	private int areaWidth;
+	private int areaHeight;
+	private float scale;
+	
+	public WindowManagerScreen(WaylandCraft wlc) {
 		super(Component.literal("Window Manager"));
 		this.wlc = wlc;
+	}
+	
+	@Override
+	protected void init() {
+		areaWidth = width - margin * 2;
+		areaHeight = height - margin - topMargin;
+		scale = rootHeight / (float) areaHeight;
+		
+		selector = new SelectorWidget(margin, topMargin - 11, 50, 12, 5);
+		addRenderableWidget(selector);
 	}
 	
 	@Override
@@ -36,27 +61,27 @@ public class WindowManagerScreen extends Screen {
 	public void render(GuiGraphics context, int i, int j, float f) {
 		super.render(context, i, j, f);
 		
-		final int margin = 10;
-		final int rootHeight = 1080;
-		
-		float scale = rootHeight / (float) (height - margin * 2);
-		
-		context.hLine(margin, width - margin, margin, Color.white.getRGB());
+		context.hLine(margin, width - margin, topMargin, Color.white.getRGB());
 		context.hLine(margin, width - margin, height - margin, Color.white.getRGB());
 		
-		context.vLine(margin, margin, height - margin, Color.white.getRGB());
-		context.vLine(width - margin, margin, height - margin, Color.white.getRGB());
+		context.vLine(margin, topMargin, height - margin, Color.white.getRGB());
+		context.vLine(width - margin, topMargin, height - margin, Color.white.getRGB());
 		
 		WLCToplevel[] toplevels = wlc.bridge.getToplevels();
+		selector.setEntries(Stream.of(toplevels).map((t) -> Optional.ofNullable(t.title).orElse("")).toArray(String[]::new));
+		
 		if(toplevels.length > 0) {
-			renderToplevel(context, toplevels[0], margin, margin, scale);
+			WLCAbstractWindow window = toplevels[selector.selection()];
+			float x = margin + Math.max(0, areaWidth / 2 - (window.geometry.width() / 2) / scale);
+			float y = topMargin + Math.max(0, areaHeight / 2 - (window.geometry.height() / 2) / scale);
+			renderWindow(context, window, x, y);
 		}
 	}
 	
-	private void renderToplevel(GuiGraphics context, WLCToplevel toplevel, float x, float y, float scale) {
-		x -= toplevel.geometry.x() / scale;
-		y -= toplevel.geometry.y() / scale;
-		for(WLCSurface surface = toplevel.getSurfaceTree(); surface != null; surface = surface.getNextChild()) {
+	private void renderWindow(GuiGraphics context, WLCAbstractWindow window, float x, float y) {
+		x -= window.geometry.x() / scale;
+		y -= window.geometry.y() / scale;
+		for(WLCSurface surface = window.getSurfaceTree(); surface != null; surface = surface.getNextChild()) {
 			renderSurface(context, surface, x + surface.xSubpos / scale, y + surface.ySubpos / scale, scale);
 		}
 	}

@@ -5,7 +5,7 @@ use smithay::{
     wayland::{
         shell::xdg::{
             ToplevelSurface, PopupSurface, XDG_POPUP_ROLE,
-            XdgPopupSurfaceData, SurfaceCachedState
+            XdgPopupSurfaceData, SurfaceCachedState, XdgToplevelSurfaceData
         },
         compositor::{
             SurfaceAttributes, BufferAssignment, with_states, SurfaceData,
@@ -930,6 +930,31 @@ fn Java_dev_evvie_waylandcraft_bridge_WaylandCraftBridge_surfaceXDGGeometry<'l>(
         let array = env.new_int_array(4).unwrap();
         env.set_int_array_region(&array, 0, &geometry).unwrap();
         array.into_raw()
+    } else { std::ptr::null_mut() }
+}
+
+#[unsafe(no_mangle)]
+pub extern "system"
+fn Java_dev_evvie_waylandcraft_bridge_WaylandCraftBridge_toplevelTitle<'l>(
+    env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    handle: jlong
+) -> jstring {
+    let toplevel = jptr_to_toplevel(handle);
+    let surface = toplevel.wl_surface();
+
+    let title = with_states(&surface, |states| {
+        let attr_guard = states
+            .data_map
+            .get::<XdgToplevelSurfaceData>()
+            .unwrap()
+            .lock()
+            .unwrap();
+        attr_guard.title.clone()
+    });
+
+    if let Some(title) = title {
+        env.new_string(&title).unwrap().into_raw()
     } else { std::ptr::null_mut() }
 }
 
