@@ -130,6 +130,11 @@ public class WaylandCraft implements ModInitializer, ClientModInitializer {
 			if(grabbedWindow != null && !grabbedWindow.isAlive()) grabbedWindow = null;
 			if(grabbedWindow != null) anchorToCamera(grabbedWindow, context.camera());
 			
+			// Make sure the toplevels are focused in their respective order and being refocused when a toplevel disappears
+			if(!(Minecraft.getInstance().screen instanceof WindowManagerScreen) && !keyboardCaptured) {
+				bridge.focusSurface(bridge.getMostRecentFocus());
+			}
+			
 			RenderSystem.enableDepthTest();
 			windows.forEach((w) -> w.render(context));
 			
@@ -305,7 +310,6 @@ public class WaylandCraft implements ModInitializer, ClientModInitializer {
 		}
 		
 		if(hitResult == null || hitResult.dist < 0) {
-			bridge.focusSurface(null);
 			keyboardCaptured = false;
 			return;
 		}
