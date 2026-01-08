@@ -13,7 +13,6 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.math.Axis;
 
 import dev.evvie.waylandcraft.bridge.WLCAbstractWindow;
 import dev.evvie.waylandcraft.bridge.WLCSurface;
@@ -104,8 +103,8 @@ public class RenderUtils {
 	
 	public static Matrix4f cameraTransform(Camera camera) {
 		PoseStack matrixStack = new PoseStack();
-		matrixStack.mulPose(Axis.XP.rotationDegrees(camera.getXRot()));
-		matrixStack.mulPose(Axis.YP.rotationDegrees(camera.getYRot() + 180.0F));
+//		matrixStack.mulPose(Axis.XP.rotationDegrees(camera.getXRot()));
+//		matrixStack.mulPose(Axis.YP.rotationDegrees(camera.getYRot() + 180.0F));
 		matrixStack.translate(-camera.getPosition().x, -camera.getPosition().y, -camera.getPosition().z);
 		
 		return matrixStack.last().pose();

@@ -19,6 +19,7 @@ import dev.evvie.waylandcraft.bridge.WLCToplevel;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.client.Camera;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 
 public class WindowDisplay {
@@ -98,6 +99,7 @@ public class WindowDisplay {
 	}
 	
 	public void render(WorldRenderContext ctx) {
+		/*
 		updateGeometry();
 		
 		int depth = 0;
@@ -105,6 +107,19 @@ public class WindowDisplay {
 			renderSurface(ctx, surface, depth);
 			depth++;
 		}
+		*/
+		
+		updateGeometry();
+		
+		Vec3 origin = origin();
+		Vec3 localX = localX();
+		Vec3 localY = localY();
+		Vec3 tl = origin;
+		Vec3 bl = origin.add(localY.scale(window.framebuffer.getHeight()));
+		Vec3 br = bl.add(localX.scale(window.framebuffer.getWidth()));
+		Vec3 tr = tl.add(localX.scale(window.framebuffer.getWidth()));
+		
+		RenderUtils.drawTexturedQuad(ctx.camera(), window.framebuffer.getTexture(), tl, bl, br, tr, new Vec2(0, 0), new Vec2(0, 1), new Vec2(1, 1), new Vec2(1, 0));
 	}
 	
 	private void renderSurface(WorldRenderContext ctx, WLCSurface surface, int depth) {

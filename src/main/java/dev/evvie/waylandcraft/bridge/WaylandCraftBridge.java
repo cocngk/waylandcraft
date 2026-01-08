@@ -2,6 +2,8 @@ package dev.evvie.waylandcraft.bridge;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.ArrayUtils;
@@ -10,6 +12,7 @@ import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWNativeEGL;
 
 import dev.evvie.waylandcraft.BufferTexture.DmabufTexture;
+import dev.evvie.waylandcraft.WindowFramebuffer;
 import dev.evvie.waylandcraft.bridge.WLCAbstractWindow.SurfaceGeometry;
 import net.minecraft.client.Minecraft;
 
@@ -229,22 +232,23 @@ public class WaylandCraftBridge {
 			}
 		}
 		
+		List<WLCAbstractWindow> allWindows = Stream.of(toplevels, popups).flatMap((l) -> l.stream()).collect(Collectors.toList());
+		
 		// Update all surface buffers
-		for(WLCToplevel toplevel : toplevels) {
-			WLCSurface root = toplevel.getSurfaceTree();
+		for(WLCAbstractWindow window : allWindows) {
+			WLCSurface root = window.getSurfaceTree();
 			for(WLCSurface surface = root; surface != null; surface = surface.getNextChild()) {
 				updateSurfaceData(instance, surface);
 				calculateSubpos(surface);
 			}
 		}
 		
-		// Update all surface buffers
-		for(WLCPopup popup : popups) {
-			WLCSurface root = popup.getSurfaceTree();
-			for(WLCSurface surface = root; surface != null; surface = surface.getNextChild()) {
-				updateSurfaceData(instance, surface);
-				calculateSubpos(surface);
+		// Render windows
+		for(WLCAbstractWindow window : allWindows) {
+			if(window.framebuffer != null) {
+				window.framebuffer.destroy();
 			}
+			window.framebuffer = WindowFramebuffer.renderWindow(window);
 		}
 		
 		deleteNonExistingDmabufs(dmabufs(instance));

@@ -2,6 +2,8 @@ package dev.evvie.waylandcraft.bridge;
 
 import org.jetbrains.annotations.Nullable;
 
+import dev.evvie.waylandcraft.WindowFramebuffer;
+
 public abstract class WLCAbstractWindow {
 	
 	// Set to zero when this window no longer exists
@@ -14,6 +16,9 @@ public abstract class WLCAbstractWindow {
 	protected WLCSurface lastChild;
 	
 	public SurfaceGeometry geometry;
+	
+	@Nullable
+	public WindowFramebuffer framebuffer = null;
 	
 	public WLCAbstractWindow(long handle) {
 		this.handle = handle;
