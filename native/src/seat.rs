@@ -107,6 +107,12 @@ impl WLCSeatState {
         disp.create_global::<WLCState, WlSeat, ()>(10, ());
     }
 
+    fn pointer_frame(&self, pointer: &WlPointer) {
+        if pointer.version() >= wl_pointer::EVT_FRAME_SINCE {
+            pointer.frame();
+        }
+    }
+
     // Set pointer focus on a surface and register movement
     pub fn pointer_motion(&self, surface: WlSurface, x: f64, y: f64) {
         if !surface.is_alive() { return };
@@ -119,7 +125,7 @@ impl WLCSeatState {
             if pointer_client != client {
                 if let Some(focus) = &data.focus {
                     pointer.leave(new_serial(), focus);
-                    pointer.frame();
+                    self.pointer_frame(pointer);
                     data.focus = None;
                 }
                 return;
@@ -138,12 +144,12 @@ impl WLCSeatState {
                     // Focus already on this surface
                     pointer.motion(get_time(), x, y);
                 }
-                pointer.frame();
             } else {
                 pointer.enter(new_serial(), &surface, x, y);
-                pointer.frame();
                 data.focus = Some(surface.clone());
             }
+
+            self.pointer_frame(pointer);
         });
     }
 
@@ -151,7 +157,7 @@ impl WLCSeatState {
         self.for_all_pointers(|pointer, data| {
             if data.focus.is_some() {
                 pointer.button(new_serial(), get_time(), button, state);
-                pointer.frame();
+                self.pointer_frame(pointer);
             }
         });
     }
@@ -160,7 +166,7 @@ impl WLCSeatState {
         self.for_all_pointers(|pointer, data| {
             if data.focus.is_some() {
                 pointer.axis(get_time(), axis, value);
-                pointer.frame();
+                self.pointer_frame(pointer);
             }
         });
     }
@@ -170,7 +176,7 @@ impl WLCSeatState {
         self.for_all_pointers(|pointer, data| {
             if let Some(focus) = &data.focus {
                 pointer.leave(new_serial(), focus);
-                pointer.frame();
+                self.pointer_frame(pointer);
                 data.focus = None;
             }
         });
