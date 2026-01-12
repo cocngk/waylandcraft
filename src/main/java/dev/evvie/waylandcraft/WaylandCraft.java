@@ -47,7 +47,7 @@ public class WaylandCraft implements ModInitializer, ClientModInitializer {
 	public ArrayList<WindowDisplay> displays = new ArrayList<WindowDisplay>();
 	public DisplayHitResult hitResult = null;
 	
-	public boolean keyboardCaptured = false;
+	public WLCToplevel keyboardCapture = null;
 	public WLCSurface pointerGrab = null;
 	
 	public WindowDisplay grabbedDisplay = null;
@@ -139,6 +139,10 @@ public class WaylandCraft implements ModInitializer, ClientModInitializer {
 						.orElse(null);
 				
 				bridge.focusSurface(focus);
+				
+				if(keyboardCapture != focus) {
+					keyboardCapture = null;
+				}
 			}
 			
 			RenderSystem.enableDepthTest();
@@ -160,7 +164,7 @@ public class WaylandCraft implements ModInitializer, ClientModInitializer {
 			int yoff = 30;
 			int ystep = font.lineHeight + 2;
 			
-			if(WaylandCraft.instance.keyboardCaptured) {
+			if(WaylandCraft.instance.keyboardCapture != null) {
 				String text = "KEYBOARD CAPTURED [PRESS F7]";
 				context.drawString(font, text, context.guiWidth() - font.width(text) - 10, yoff, Color.red.getRGB(), true);
 				yoff += ystep;
@@ -308,7 +312,7 @@ public class WaylandCraft implements ModInitializer, ClientModInitializer {
 			return true;
 		}
 		
-		if(!keyboardCaptured) return false;
+		if(keyboardCapture == null) return false;
 		
 		/* This code just completely naively assumes that the scancode received by GLFW
 		 * is also the correct matching Wayland scancode for the default XKBConfig.
@@ -333,11 +337,12 @@ public class WaylandCraft implements ModInitializer, ClientModInitializer {
 		
 		WLCToplevel focused = bridge.getMostRecentFocus();
 		if(focused == null || !hasDisplayFor(focused)) {
-			keyboardCaptured = false;
+			keyboardCapture = null;
 			return;
 		}
 		
-		keyboardCaptured = !keyboardCaptured;
+		if(keyboardCapture == null) keyboardCapture = focused;
+		else keyboardCapture = null;
 	}
 	
 	private void anchorToParent(WLCPopup popup) {
@@ -367,7 +372,7 @@ public class WaylandCraft implements ModInitializer, ClientModInitializer {
 	}
 	
 	private void checkPointerGrab(WLCSurface surface) {
-		if(grabbedDisplay != null || !keyboardCaptured || Minecraft.getInstance().screen != null) {
+		if(grabbedDisplay != null || keyboardCapture == null || !inSurfaceTreeOf(keyboardCapture, surface) || Minecraft.getInstance().screen != null) {
 			pointerGrab = null;
 			bridge.unlockPointer();
 			return;
@@ -380,6 +385,13 @@ public class WaylandCraft implements ModInitializer, ClientModInitializer {
 		else {
 			pointerGrab = null;
 		}
+	}
+	
+	private boolean inSurfaceTreeOf(WLCAbstractWindow window, WLCSurface surface) {
+		for(WLCSurface s = window.getSurfaceTree(); s != null; s = s.getNextChild()) {
+			if(s == surface) return true;
+		}
+		return false;
 	}
 	
 	private boolean inScreen = false;
