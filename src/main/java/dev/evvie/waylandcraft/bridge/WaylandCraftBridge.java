@@ -26,6 +26,8 @@ public class WaylandCraftBridge {
 	
 	private LinkedList<WLCToplevel> focusOrder = new LinkedList<WLCToplevel>();
 	
+	public ArrayList<WLCToplevel> newToplevels = new ArrayList<WLCToplevel>();
+	
 	static {
 		System.loadLibrary("waylandcraft");
 	}
@@ -51,6 +53,7 @@ public class WaylandCraftBridge {
 			if(toplevel.getHandle() == handle) return toplevel;
 		}
 		WLCToplevel toplevel = new WLCToplevel(handle);
+		newToplevels.add(toplevel);
 		
 		long surfaceHandle = toplevelSurface(this.instance, handle);
 		WLCSurface surface = getOrCreateSurface(surfaceHandle);
@@ -292,6 +295,10 @@ public class WaylandCraftBridge {
 	
 	public WLCToplevel[] getToplevels() {
 		return toplevels.toArray(new WLCToplevel[toplevels.size()]);
+	}
+	
+	public WLCToplevel getToplevel(long handle) {
+		return toplevels.stream().filter((w) -> w.getHandle() == handle).findAny().orElse(null);
 	}
 	
 	public WLCPopup[] getPopups() {

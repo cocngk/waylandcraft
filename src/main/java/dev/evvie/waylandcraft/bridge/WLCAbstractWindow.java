@@ -24,7 +24,7 @@ public abstract class WLCAbstractWindow {
 		this.handle = handle;
 	}
 	
-	protected long getHandle() {
+	public long getHandle() {
 		return this.handle;
 	}
 	

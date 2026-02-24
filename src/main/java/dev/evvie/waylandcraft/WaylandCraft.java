@@ -3,6 +3,7 @@ package dev.evvie.waylandcraft;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL33;
@@ -21,6 +22,7 @@ import dev.evvie.waylandcraft.bridge.WLCToplevel;
 import dev.evvie.waylandcraft.bridge.WaylandCraftBridge;
 import dev.evvie.waylandcraft.bridge.WaylandCraftBridge.Size;
 import dev.evvie.waylandcraft.gui.WindowManagerScreen;
+import dev.evvie.waylandcraft.item.WindowItem;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -28,16 +30,23 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.CoreShaderRegistrationCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Camera;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
 public class WaylandCraft implements ModInitializer, ClientModInitializer {
@@ -64,6 +73,7 @@ public class WaylandCraft implements ModInitializer, ClientModInitializer {
 	
 	@Override
 	public void onInitialize() {
+		WindowItem.register();
 	}
 	
 	@Override
@@ -263,6 +273,46 @@ public class WaylandCraft implements ModInitializer, ClientModInitializer {
 		
 		CoreShaderRegistrationCallback.EVENT.register(context -> {
 			RenderUtils.registerShaders(context);
+		});
+		
+		ServerTickEvents.END_WORLD_TICK.register(level -> {
+			if(bridge == null) return;
+			
+			level.players().forEach(player -> {
+				bridge.newToplevels.forEach(toplevel -> {
+					ItemStack item = WindowItem.createItem(toplevel);
+					player.addItem(item);
+				});
+				
+				Inventory inv = player.getInventory();
+				for(int i = 0; i < inv.getContainerSize(); i++) {
+					ItemStack item = inv.getItem(i);
+					
+					if(!item.is(WindowItem.WINDOW)) continue;
+					if(WindowItem.getToplevel(item) != null) continue;
+					
+					inv.setItem(i, ItemStack.EMPTY);
+					level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.GENERIC_BURN, SoundSource.BLOCKS);
+				}
+			});
+			bridge.newToplevels.clear();
+			
+			StreamSupport.stream(level.getAllEntities().spliterator(), false)
+					.filter((e) -> e instanceof ItemEntity)
+					.map((e) -> (ItemEntity) e)
+					.filter((e) -> e.getItem().is(WindowItem.WINDOW))
+					.filter((e) -> WindowItem.getToplevel(e.getItem()) == null)
+					.filter((e) -> e.getAge() > 10)
+					.forEach((e) -> {
+						for(int i = 0; i < 10; i++) {
+							double dx = ((level.random.nextDouble() * 2) - 1) * 0.15;
+							double dy = level.random.nextDouble() * 0.2;
+							double dz = ((level.random.nextDouble() * 2) - 1) * 0.15;
+							Minecraft.getInstance().level.addParticle(ParticleTypes.FLAME, e.getX(), e.getY(), e.getZ(), dx, dy, dz);
+						}
+						level.playSound(null, e.getX(), e.getY(), e.getZ(), SoundEvents.GENERIC_BURN, SoundSource.BLOCKS);
+						e.discard();
+					});
 		});
 	}
 	
