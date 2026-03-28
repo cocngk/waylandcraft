@@ -4,8 +4,8 @@ import java.awt.Color;
 import java.util.ArrayList;
 
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.opengl.GL33;
 
+import dev.evvie.waylandcraft.render.RenderUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -171,9 +171,7 @@ public abstract class SelectorWidget<T> extends AbstractWidget {
 			int iconSize = height - 4;
 			
 			if(icon != null) {
-				GL33.glEnable(GL33.GL_BLEND);
-				context.blit(icon, xoff, y + 2, 0, 0, 0, iconSize, iconSize, iconSize, iconSize);
-				GL33.glDisable(GL33.GL_BLEND);
+				RenderUtils.blit(context, icon, xoff, y + 2, iconSize, iconSize);
 				xoff += iconSize + 2;
 			}
 			

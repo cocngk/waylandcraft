@@ -78,9 +78,7 @@ public class WaylandHudRenderer {
 				int iconX = x - font.lineHeight - 2;
 				int iconY = yoff;
 				int iconSize = font.lineHeight;
-				GL33.glEnable(GL33.GL_BLEND);
-				if(icon != null) context.blit(icon, iconX, iconY, 0, 0, 0, iconSize, iconSize, iconSize, iconSize);
-				GL33.glDisable(GL33.GL_BLEND);
+				if(icon != null) RenderUtils.blit(context, icon, iconX, iconY, iconSize, iconSize);
 			}
 			
 			yoff += ystep;

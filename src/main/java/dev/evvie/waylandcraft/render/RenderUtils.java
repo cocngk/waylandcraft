@@ -3,12 +3,16 @@ package dev.evvie.waylandcraft.render;
 import java.io.IOException;
 import java.util.function.Function;
 
+import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.PoseStack.Pose;
+import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat.Mode;
@@ -19,6 +23,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.CoreShaderRegistrationCallbac
 import net.minecraft.Util;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
 import net.minecraft.client.renderer.RenderStateShard;
@@ -35,6 +40,7 @@ public class RenderUtils {
 	private static ShaderInstance RENDERTYPE_WINDOW_CUTOUT;
 	private static ShaderInstance RENDERTYPE_WINDOW_COLORLESS;
 	private static ShaderInstance RENDERTYPE_WINDOW_COLORLESS_CUTOUT;
+	private static ShaderInstance POSITION_TEX_TRANSLUCENT;
 	
 	public static void registerShaders(CoreShaderRegistrationCallback.RegistrationContext context) throws IOException {
 		context.register(new ResourceLocation(WaylandCraft.MOD_ID, "rendertype_window"), DefaultVertexFormat.NEW_ENTITY, shader -> {
@@ -48,6 +54,9 @@ public class RenderUtils {
 		});
 		context.register(new ResourceLocation(WaylandCraft.MOD_ID, "rendertype_window_colorless_cutout"), DefaultVertexFormat.NEW_ENTITY, shader -> {
 			RENDERTYPE_WINDOW_COLORLESS_CUTOUT = shader;
+		});
+		context.register(new ResourceLocation(WaylandCraft.MOD_ID, "position_tex_translucent"), DefaultVertexFormat.POSITION_TEX, shader -> {
+			POSITION_TEX_TRANSLUCENT = shader;
 		});
 	}
 	
@@ -65,6 +74,10 @@ public class RenderUtils {
 	
 	public static ShaderInstance getRendertypeWindowColorlessCutoutShader() {
 		return RENDERTYPE_WINDOW_COLORLESS_CUTOUT;
+	}
+	
+	public static ShaderInstance getPositionTexTranslucentShader() {
+		return POSITION_TEX_TRANSLUCENT;
 	}
 	
 	public static RenderType rendertypeWindow(int texture) {
@@ -200,6 +213,21 @@ public class RenderUtils {
 		matrixStack.translate(-camera.getPosition().x, -camera.getPosition().y, -camera.getPosition().z);
 		
 		return matrixStack.last();
+	}
+	
+	public static void blit(GuiGraphics context, ResourceLocation location, float x, float y, float width, float height) {
+		RenderSystem.setShaderTexture(0, location);
+		RenderSystem.setShader(RenderUtils::getPositionTexTranslucentShader);
+		RenderSystem.enableBlend();
+		Matrix4f matrix4f = context.pose().last().pose();
+		BufferBuilder bufferBuilder = Tesselator.getInstance().getBuilder();
+		bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+		bufferBuilder.vertex(matrix4f, x        , y,          0).uv(0, 0).endVertex();
+		bufferBuilder.vertex(matrix4f, x        , y + height, 0).uv(0, 1).endVertex();
+		bufferBuilder.vertex(matrix4f, x + width, y + height, 0).uv(1, 1).endVertex();
+		bufferBuilder.vertex(matrix4f, x + width, y,          0).uv(1, 0).endVertex();
+		BufferUploader.drawWithShader(bufferBuilder.end());
+		RenderSystem.disableBlend();
 	}
 	
 }

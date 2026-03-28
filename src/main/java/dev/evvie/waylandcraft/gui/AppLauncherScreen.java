@@ -4,10 +4,9 @@ import java.awt.Color;
 import java.util.List;
 import java.util.Random;
 
-import com.mojang.blaze3d.systems.RenderSystem;
-
 import dev.evvie.waylandcraft.WaylandCraft;
 import dev.evvie.waylandcraft.desktop.DesktopEntry;
+import dev.evvie.waylandcraft.render.RenderUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -90,12 +89,10 @@ public class AppLauncherScreen extends Screen {
 			}
 			context.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), color);
 			
-			RenderSystem.enableBlend();
 			context.enableScissor(getX(), getY(), getX() + getWidth(), getY() + getHeight());
 			context.drawString(font, text, getX() + textOffset, getY() + getHeight() - font.lineHeight - 2, Color.white.getRGB());
-			if(entry.icon != null) context.blit(entry.icon, getX() + iconOffset + 2, getY() + 2, 0, 0, 0, iconSize, iconSize, iconSize, iconSize);
+			if(entry.icon != null) RenderUtils.blit(context, entry.icon, getX() + iconOffset + 2, getY() + 2, iconSize, iconSize);
 			context.disableScissor();
-			RenderSystem.disableBlend();
 		}
 		
 		@Override
