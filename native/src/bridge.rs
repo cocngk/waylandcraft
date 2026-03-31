@@ -1673,7 +1673,9 @@ fn Java_dev_evvie_waylandcraft_bridge_WaylandCraftBridge_execApp<'l>(
     }.into();
 
     let env_vars = vec![
-        ("WAYLAND_DISPLAY".into(), instance.state.socket.clone())
+        ("WAYLAND_DISPLAY".into(), instance.state.socket.clone()),
+        ("QT_QPA_PLATFORM".into(), "wayland".into()),
+        ("ELECTRON_OZONE_PLATFORM_HINT".into(), "auto".into()),
     ];
     instance.xdg.exec_app(app_id, env_vars) as jboolean
 }
