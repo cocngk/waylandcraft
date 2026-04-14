@@ -9,6 +9,7 @@ use smithay::{
             protocol::{
                 wl_data_device_manager::self as wl_ddm,
                 wl_data_device_manager::WlDataDeviceManager as WlDDM,
+                wl_data_device_manager::DndAction,
                 wl_data_source::{self, WlDataSource},
                 wl_data_device::{self, WlDataDevice},
                 wl_data_offer::{self, WlDataOffer},
@@ -50,6 +51,7 @@ type WLCDataSource = Arc<Mutex<WLCDataSourceData>>;
 struct WLCDataSourceData {
     usage: SourceUsage,
     mime: Vec<String>,
+    actions: DndAction,
 }
 
 type WLCDataOffer = Arc<Mutex<WLCDataOfferData>>;
@@ -238,6 +240,7 @@ impl WLCDataState {
                 for m in data.mime.iter().cloned() {
                     offer.offer(m);
                 }
+                offer.source_actions(data.actions);
             });
 
             // Make device enter surface
@@ -339,6 +342,7 @@ impl Dispatch<WlDDM, ()> for WLCState {
                 let source_data = WLCDataSourceData {
                     usage: SourceUsage::Unused,
                     mime: vec![],
+                    actions: DndAction::empty(),
                 };
                 let source_data = Arc::new(Mutex::new(source_data));
                 let _source = data_init.init(id, source_data.clone());
@@ -389,7 +393,27 @@ impl Dispatch<WlDataSource, WLCDataSource> for WLCState {
                     }
                 }
             },
-            wl_data_source::Request::SetActions { .. } => {},
+            wl_data_source::Request::SetActions { dnd_actions } => {
+                let actions = match dnd_actions.into_result() {
+                    Ok(a) => a,
+                    Err(_) => { return }
+                };
+
+                with_source_data(source, |data| {
+                    data.actions = actions;
+                });
+
+                state.data.for_all_devices(|_device, data| {
+                    if data.dnd_offer.is_none() { return }
+                    let offer = data.dnd_offer.as_ref().unwrap();
+                    let matches_source = with_offer_data(offer, |data| {
+                        data.source == *source
+                    });
+                    if matches_source {
+                        offer.source_actions(actions);
+                    }
+                });
+            },
             _ => unreachable!(),
         }
     }
