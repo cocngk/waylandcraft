@@ -254,8 +254,13 @@ public class WaylandCraftBridge {
 		}
 		
 		long dndIconHandle = dndIcon(instance);
-		if(dndIconHandle == 0) dndIcon = null;
-		else dndIcon = new IconSurface(getOrCreateSurface(dndIconHandle));
+		if(dndIconHandle == 0) {
+			if(dndIcon != null && dndIcon.framebuffer != null) dndIcon.framebuffer.freeTexture();
+			dndIcon = null;
+		}
+		else {
+			dndIcon = new IconSurface(getOrCreateSurface(dndIconHandle));
+		}
 		
 		if(dndIcon != null) {
 			updateSurfaceData(instance, dndIcon.surface);
