@@ -41,7 +41,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.HudLayerRegistrationCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
@@ -115,7 +115,7 @@ public class WaylandCraft implements ModInitializer, ClientModInitializer {
 		
 		WorldRenderEvents.END.register((ctx) -> this.renderWorld(ctx.camera()));
 		ClientTickEvents.END_CLIENT_TICK.register(this::onClientTick);
-		HudRenderCallback.EVENT.register(hudRenderer::render);
+		HudLayerRegistrationCallback.EVENT.register(hudRenderer::register);
 		ServerTickEvents.START_WORLD_TICK.register(itemManager::onServerTick);
 		ClientPlayConnectionEvents.JOIN.register(this::onClientJoin);
 		
