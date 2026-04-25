@@ -9,7 +9,8 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.lwjgl.system.MemoryUtil;
 
 import com.mojang.blaze3d.platform.NativeImage;
-import com.mojang.blaze3d.platform.TextureUtil;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.textures.TextureFormat;
 
 import dev.evvie.waylandcraft.WaylandCraft;
 import dev.evvie.waylandcraft.mixin.NativeImageMixin;
@@ -133,16 +134,13 @@ public class DesktopIcon {
 		
 		public void upload() {
 			NativeImage nativeImage = image.nativeImage;
-			TextureUtil.prepareImage(getId(), nativeImage.getWidth(), nativeImage.getHeight());
-			nativeImage.upload(0, 0, 0, false);
+			
+			texture = RenderSystem.getDevice().createTexture("icon texture", TextureFormat.RGBA8, nativeImage.getWidth(), nativeImage.getHeight(), 1);
+			RenderSystem.getDevice().createCommandEncoder().writeToTexture(texture, nativeImage);
+			
 			if(image.close) nativeImage.close();
 			
 			image.backing = null; // Allow java to garbage collect the data now
-		}
-		
-		@Override
-		public void close() {
-			releaseId();
 		}
 		
 	}

@@ -24,4 +24,11 @@ public class LocalPlayerMixin {
 		return player.isUsingItem();
 	}
 	
+	@Redirect(method = "modifyInput", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;isUsingItem()Z"))
+	public boolean modifyInputIsUsingItem(LocalPlayer player) {
+		// Stop player item use slowdown
+		if(WaylandCraft.instance.playerUsingWindowItem) return false;
+		return player.isUsingItem();
+	}
+	
 }

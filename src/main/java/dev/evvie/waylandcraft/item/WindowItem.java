@@ -9,6 +9,7 @@ import com.mojang.serialization.Codec;
 import dev.evvie.waylandcraft.WaylandCraft;
 import dev.evvie.waylandcraft.bridge.WLCToplevel;
 import dev.evvie.waylandcraft.desktop.DesktopEntry;
+import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Registry;
@@ -38,6 +39,7 @@ public class WindowItem extends Item {
 	public static void register() {
 		WINDOW = Registry.register(BuiltInRegistries.ITEM, WINDOW_RESOURCE_KEY, new WindowItem());
 		WINDOW_HANDLE = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, ResourceLocation.fromNamespaceAndPath(WaylandCraft.MOD_ID, "window_handle"), DataComponentType.<Long>builder().persistent(Codec.LONG).build());
+		ItemTooltipCallback.EVENT.register(WindowItem::addTooltip);
 	}
 	
 	public WindowItem() {
@@ -69,11 +71,15 @@ public class WindowItem extends Item {
 		return Component.literal(name);
 	}
 	
-	@Override
-	public void appendHoverText(ItemStack itemStack, TooltipContext tooltipContext, List<Component> list, TooltipFlag tooltipFlag) {
+	private static void addTooltip(ItemStack itemStack, TooltipContext ctx, TooltipFlag flag, List<Component> list) {
 		Long handle = itemStack.get(WINDOW_HANDLE);
-		
-		if(handle != null) list.add(Component.literal("Handle 0x" + Long.toHexString(handle.longValue())).withStyle(ChatFormatting.GRAY));
+		if(handle != null) {
+			String text = "Handle 0x" + Long.toHexString(handle.longValue());
+			Component component = Component
+					.literal(text)
+					.withStyle(ChatFormatting.GRAY);
+			list.add(component);
+		}
 	}
 	
 	@Override

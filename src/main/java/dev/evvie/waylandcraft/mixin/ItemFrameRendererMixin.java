@@ -5,7 +5,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -18,9 +17,10 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.ItemFrameRenderer;
 import net.minecraft.client.renderer.entity.state.ItemFrameRenderState;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
-import net.minecraft.client.resources.model.BlockStateModelLoader;
-import net.minecraft.client.resources.model.ModelResourceLocation;
+import net.minecraft.client.resources.model.BlockStateDefinitions;
 import net.minecraft.world.entity.decoration.ItemFrame;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 @Mixin(ItemFrameRenderer.class)
 public class ItemFrameRendererMixin {
@@ -43,13 +43,15 @@ public class ItemFrameRendererMixin {
 		((IMyItemFrameRenderState) itemFrameRenderState).setToplevel(toplevel);
 	}
 	
-	@Inject(method = "getFrameModelResourceLocation", at = @At("HEAD"), cancellable = true)
-	private static void redirectGetFrameModelResourceLocation(ItemFrameRenderState itemFrameRenderState, CallbackInfoReturnable<ModelResourceLocation> info) {
-		WLCToplevel toplevel = ((IMyItemFrameRenderState) itemFrameRenderState).getToplevel();
-		if(toplevel == null) return;
+	@Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/resources/model/BlockStateDefinitions;getItemFrameFakeState(ZZ)Lnet/minecraft/world/level/block/state/BlockState;"))
+	public BlockState changeItemFrameModel(boolean glowFrame, boolean map, @Local ItemFrameRenderState itemFrameRenderState) {
+		BlockState state = BlockStateDefinitions.getItemFrameFakeState(glowFrame, map);
 		
-		info.setReturnValue(itemFrameRenderState.isGlowFrame ? BlockStateModelLoader.GLOW_MAP_FRAME_LOCATION : BlockStateModelLoader.MAP_FRAME_LOCATION);
-		info.cancel();
+		WLCToplevel toplevel = ((IMyItemFrameRenderState) itemFrameRenderState).getToplevel();
+		if(toplevel != null) {
+			state = state.setValue(BlockStateProperties.MAP, true);
+		}
+		return state;
 	}
 	
 }

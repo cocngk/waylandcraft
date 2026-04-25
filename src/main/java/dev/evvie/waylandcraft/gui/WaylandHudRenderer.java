@@ -3,8 +3,6 @@ package dev.evvie.waylandcraft.gui;
 import java.awt.Color;
 import java.util.Calendar;
 
-import com.mojang.blaze3d.systems.RenderSystem;
-
 import dev.evvie.waylandcraft.WaylandCraft;
 import dev.evvie.waylandcraft.WaylandCraft.KeyboardCaptureMode;
 import dev.evvie.waylandcraft.bridge.IconSurface;
@@ -116,9 +114,8 @@ public class WaylandHudRenderer {
 			Vec3 bl = new Vec3(x, y + h, 0);
 			Vec3 br = new Vec3(x + w, y + h, 0);
 			Vec3 tr = new Vec3(x + w, y, 0);
-			RenderSystem.enableBlend();
-			RenderUtils.renderWindow(buf, false, context.pose().last(), tl, bl, br, tr, new Vec2(0, 0), new Vec2(0, 1), new Vec2(1, 1), new Vec2(1, 0));
-			RenderSystem.disableBlend();
+			
+			RenderUtils.renderFramebuffer(buf, false, context.pose().last(), tl, bl, br, tr, new Vec2(0, 0), new Vec2(0, 1), new Vec2(1, 1), new Vec2(1, 0));
 		}
 	}
 	
@@ -146,9 +143,8 @@ public class WaylandHudRenderer {
 			Vec3 bl = new Vec3(x, y + h, 0);
 			Vec3 br = new Vec3(x + w, y + h, 0);
 			Vec3 tr = new Vec3(x + w, y, 0);
-			RenderSystem.enableBlend();
-			RenderUtils.renderWindow(buf, false, context.pose().last(), tl, bl, br, tr, new Vec2(0, 0), new Vec2(0, 1), new Vec2(1, 1), new Vec2(1, 0));
-			RenderSystem.disableBlend();
+			
+			RenderUtils.renderFramebuffer(buf, false, context.pose().last(), tl, bl, br, tr, new Vec2(0, 0), new Vec2(0, 1), new Vec2(1, 1), new Vec2(1, 0));
 		}
 	}
 	

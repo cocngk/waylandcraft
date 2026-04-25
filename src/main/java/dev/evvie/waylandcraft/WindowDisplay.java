@@ -2,13 +2,16 @@ package dev.evvie.waylandcraft;
 
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3d;
+import org.joml.Matrix4fStack;
 import org.joml.Vector3d;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack.Pose;
 
 import dev.evvie.waylandcraft.bridge.WLCAbstractWindow;
 import dev.evvie.waylandcraft.bridge.WLCSurface;
 import dev.evvie.waylandcraft.render.RenderUtils;
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.client.Camera;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec2;
@@ -87,7 +90,7 @@ public class WindowDisplay {
 		height = window.geometry.height();
 	}
 	
-	public void render(Camera camera) {
+	public void render(WorldRenderContext ctx) {
 		updateGeometry();
 		
 		int xoff = window.framebuffer.getXOff();
@@ -106,8 +109,14 @@ public class WindowDisplay {
 		Vec3 br = bl.add(localX.scale(bufWidth));
 		Vec3 tr = tl.add(localX.scale(bufWidth));
 		
-		Pose pose = RenderUtils.cameraTransformPose(camera);
-		RenderUtils.renderWindow(window.framebuffer, true, pose, tl, bl, br, tr, new Vec2(0, 0), new Vec2(0, 1), new Vec2(1, 1), new Vec2(1, 0));
+		Pose pose = RenderUtils.cameraTransform(ctx.camera());
+		Matrix4fStack modelView = RenderSystem.getModelViewStack();
+		modelView.pushMatrix();
+		modelView.identity();
+		
+		RenderUtils.renderFramebuffer(window.framebuffer, true, pose, tl, bl, br, tr, new Vec2(0, 0), new Vec2(0, 1), new Vec2(1, 1), new Vec2(1, 0));
+		
+		modelView.popMatrix();
 	}
 	
 	/* Transform absolute world coordinates to surface-local pixel coordinates relative to toplevel (0, 0)

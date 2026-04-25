@@ -31,7 +31,6 @@ import dev.evvie.waylandcraft.gui.WaylandHudRenderer;
 import dev.evvie.waylandcraft.gui.WindowManagerScreen;
 import dev.evvie.waylandcraft.item.WindowItem;
 import dev.evvie.waylandcraft.item.WindowItemManager;
-import dev.evvie.waylandcraft.render.RenderUtils;
 import dev.evvie.waylandcraft.render.WindowInHandRenderer;
 import dev.evvie.waylandcraft.render.WindowInItemFrameRenderer;
 import dev.evvie.waylandcraft.render.WindowItemModel;
@@ -42,6 +41,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.HudLayerRegistrationCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
@@ -113,13 +113,12 @@ public class WaylandCraft implements ModInitializer, ClientModInitializer {
 		keyOpenAppLauncher = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.appLauncher", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, KEYBIND_CATEGORY));
 		keyCaptureKeyboard = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.captureKeyboard", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, KEYBIND_CATEGORY));
 		
-		WorldRenderEvents.END.register((ctx) -> this.renderWorld(ctx.camera()));
+		WorldRenderEvents.AFTER_ENTITIES.register(this::renderWorld);
 		ClientTickEvents.END_CLIENT_TICK.register(this::onClientTick);
 		HudLayerRegistrationCallback.EVENT.register(hudRenderer::register);
 		ServerTickEvents.START_WORLD_TICK.register(itemManager::onServerTick);
 		ClientPlayConnectionEvents.JOIN.register(this::onClientJoin);
 		
-		RenderUtils.registerShaders();
 		WindowItemModel.register();
 	}
 	
@@ -139,7 +138,7 @@ public class WaylandCraft implements ModInitializer, ClientModInitializer {
 	}
 	
 	/* Called during level render. Used for everything relevant in-game. */
-	public void renderWorld(Camera camera) {
+	public void renderWorld(WorldRenderContext ctx) {
 		if(bridge == null) return;
 		
 		for(WLCPopup popup : bridge.getMappedPopups()) {
@@ -180,6 +179,7 @@ public class WaylandCraft implements ModInitializer, ClientModInitializer {
 			bridge.focusSurface(focus);
 		}
 		
+		Camera camera = ctx.camera();
 		processPointerMotion(camera);
 		
 		if(Minecraft.getInstance().player == null || !Minecraft.getInstance().player.isUsingItem()) playerUsingWindowItem = false;
@@ -196,8 +196,8 @@ public class WaylandCraft implements ModInitializer, ClientModInitializer {
 			else playerUsingWindowItem = false;
 		}
 		
-		displays.sort(((display1, display2) -> (int) Math.signum(display2.pivot.distanceToSqr(camera.getPosition()) - display1.pivot.distanceToSqr(camera.getPosition()))));
-		displays.forEach((w) -> w.render(camera));
+		Minecraft.getInstance().renderBuffers().bufferSource().endBatch(); // Finish any existing immediate render calls before rendering
+		displays.forEach((d) -> d.render(ctx));
 		
 		updateOutputSize(inWMScreen);
 	}

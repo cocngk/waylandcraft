@@ -8,7 +8,6 @@ import java.util.Optional;
 
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
-import org.lwjgl.opengl.GL33;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 
@@ -267,8 +266,6 @@ public class WindowManagerScreen extends Screen {
 		
 		windows.clear();
 		
-		GL33.glEnable(GL33.GL_BLEND);
-		
 		float guiScale = (float) Minecraft.getInstance().getWindow().getGuiScale();
 		PoseStack poseStack = context.pose();
 		poseStack.pushPose();
@@ -288,13 +285,12 @@ public class WindowManagerScreen extends Screen {
 				Vec3 bl = new Vec3(x, y + h, 0);
 				Vec3 br = new Vec3(x + w, y + h, 0);
 				Vec3 tr = new Vec3(x + w, y, 0);
-				RenderUtils.renderWindow(buf, false, context.pose().last(), tl, bl, br, tr, new Vec2(0, 0), new Vec2(0, 1), new Vec2(1, 1), new Vec2(1, 0));
+				
+				RenderUtils.renderFramebuffer(buf, false, context.pose().last(), tl, bl, br, tr, new Vec2(0, 0), new Vec2(0, 1), new Vec2(1, 1), new Vec2(1, 0));
 			}
 		}
 		
 		poseStack.popPose();
-		
-		GL33.glDisable(GL33.GL_BLEND);
 		
 		buttons.forEach((b) -> b.setFocused(false));
 		
