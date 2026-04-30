@@ -16,7 +16,7 @@ import net.minecraft.world.phys.Vec3;
 @Mixin(Minecraft.class)
 public class MinecraftMixin {
 	
-	@Inject(method = "runTick", at = @At(value = "INVOKE_STRING", target = "Lcom/mojang/blaze3d/platform/Window;setErrorSection(Ljava/lang/String;)V", args = "ldc=Render"))
+	@Inject(method = "runTick", at = @At(value = "INVOKE_STRING", target = "Lcom/mojang/blaze3d/platform/Window;setErrorSection(Ljava/lang/String;)V", args = "ldc=Post render"))
 	public void runTick(boolean doTick, CallbackInfo info) {
 		WaylandCraft.instance.update();
 	}
