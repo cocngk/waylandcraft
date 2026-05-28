@@ -254,6 +254,8 @@ public class WindowDisplay {
 			WLCToplevel toplevel = (WLCToplevel) display.window;
 			
 			DisplayHitResult result = display.intersect(pos, view);
+			if(result == null) continue;
+			
 			double hx = result.surfaceLocalOrigin.x();
 			double hy = result.surfaceLocalOrigin.y();
 			
