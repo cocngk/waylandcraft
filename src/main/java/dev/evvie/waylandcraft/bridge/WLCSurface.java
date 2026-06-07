@@ -151,6 +151,9 @@ public class WLCSurface {
 	}
 	
 	protected void addBufferDamage(int x, int y, int width, int height) {
+		BufferTexture buffer = this.buffer;
+		if(buffer == null) return;
+		
 		double sx = x;
 		double sy = y;
 		double sw = width;
