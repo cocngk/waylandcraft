@@ -102,6 +102,10 @@ bind_java_type! {
             sig = (glfw_get_proc_address: jlong, egl_display: jlong) -> jlong,
             fn = init,
         },
+        static extern fn shutdown {
+            sig = (instance: jlong),
+            fn = shutdown,
+        },
         static extern fn update {
             sig = (instance: jlong),
             fn = update,
@@ -109,6 +113,10 @@ bind_java_type! {
         static extern fn socket {
             sig = (instance: jlong) -> JString,
             fn = socket,
+        },
+        static extern fn x11_display {
+            sig = (instance: jlong) -> JString,
+            fn = x11_display,
         },
         static extern fn send_frame {
             sig = (surface_handle: jlong),
@@ -458,6 +466,21 @@ fn init<'local>(
     Ok(ptr.addr() as jlong)
 }
 
+fn shutdown<'local>(
+    _env: &mut Env<'local>,
+    _class: JClass<'local>,
+    instance: jlong,
+) -> Result<(), BridgeError> {
+    // This function acquires the instance from a raw pointer again and
+    // drops it. Goes without saying that there shouldn't be any further
+    // calls into the bridge after this.
+
+    let ptr = instance as *mut WaylandCraft;
+    let _ = unsafe { Box::from_raw(ptr) };
+
+    Ok(())
+}
+
 fn update<'local>(
     _env: &mut Env<'local>,
     _class: JClass<'local>,
@@ -481,6 +504,20 @@ fn socket<'local>(
         .ok_or(BridgeError::OsStringToUtf8)?;
 
     Ok(JString::new(env, socket)?)
+}
+
+fn x11_display<'local>(
+    env: &mut Env<'local>,
+    _class: JClass<'local>,
+    instance: jlong,
+) -> Result<JString<'local>, BridgeError> {
+    let instance = jptr_to_instance!(instance, "x11Display")?;
+    if let Some(ref s) = instance.state.satellite {
+        Ok(JString::new(env, s.get_display())?)
+    }
+    else {
+        Ok(JString::null())
+    }
 }
 
 fn send_frame<'local>(
@@ -1828,12 +1865,15 @@ fn exec_app<'local>(
     let instance = jptr_to_instance!(instance, "execApp")?;
     let app_id = app_id.try_to_string(env)?;
 
-    let env_vars = vec![
+    let mut env_vars = vec![
         ("WAYLAND_DISPLAY".into(), instance.state.socket.clone()),
         ("QT_QPA_PLATFORM".into(), "wayland".into()),
         ("ELECTRON_OZONE_PLATFORM_HINT".into(), "auto".into()),
         ("GDK_BACKEND".into(), "wayland".into()),
     ];
+    if let Some(ref s) = instance.state.satellite {
+        env_vars.push(("DISPLAY".into(), s.get_display().into()));
+    }
 
     Ok(instance.xdg.exec_app(app_id, env_vars))
 }
