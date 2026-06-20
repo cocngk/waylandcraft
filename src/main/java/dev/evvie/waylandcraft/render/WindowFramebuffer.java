@@ -328,6 +328,7 @@ public class WindowFramebuffer {
 		public FramebufferTexture(GpuTextureView textureView) {
 			this.textureView = textureView;
 			this.texture = textureView.texture();
+			this.sampler = RenderUtils.WINDOW_SAMPLER.get();
 		}
 		
 		@Override
