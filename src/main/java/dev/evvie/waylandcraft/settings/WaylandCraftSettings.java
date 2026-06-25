@@ -19,19 +19,16 @@ public class WaylandCraftSettings {
 	 */
 	
 	int pixelsPerBlock = 500;
-	boolean windowAntialiasing = false;
 	boolean focusOnHover = false;
 	String terminalChoice = "";
 	
 	/* This is where the field names go to avoid typos */
 	public static final String PIXELS_PER_BLOCK = "pixelsPerBlock";
-	public static final String WINDOW_ANTIALIASING = "windowAntialiasing";
 	public static final String FOCUS_ON_HOVER = "focusOnHover";
 	public static final String TERMINAL_CHOICE = "terminalChoice";
 	
 	public static final String[] SETTINGS = new String[] {
 			PIXELS_PER_BLOCK,
-			WINDOW_ANTIALIASING,
 			FOCUS_ON_HOVER,
 			TERMINAL_CHOICE
 	};
@@ -40,10 +37,6 @@ public class WaylandCraftSettings {
 	
 	public int getPixelsPerBlock() {
 		return pixelsPerBlock;
-	}
-	
-	public boolean getAntialiasing() {
-		return windowAntialiasing;
 	}
 	
 	public boolean getFocusOnHover() {
