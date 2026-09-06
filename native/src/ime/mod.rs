@@ -9,9 +9,9 @@
 
 mod relay;
 
-pub use relay::{
-    CommitOutcome, FlushBatch, ImeOp, Relay, RelayCommand, RelayEndpoint,
-};
+// Only re-export symbols used by this facade. Wire code can import the rest from
+// `crate::ime::relay` (`CommitOutcome`, `FlushBatch`, `ImeOp`) when needed.
+pub use relay::{Relay, RelayCommand, RelayEndpoint};
 
 use smithay::reexports::wayland_server::{
     DisplayHandle,
