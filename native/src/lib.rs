@@ -1,6 +1,7 @@
 use crate::bridge::BridgeState;
 use crate::ddm::WLCDataState;
 use crate::egl::EGLHelper;
+use crate::ime::ImeState;
 use crate::output::WLCOutput;
 use crate::satellite::SatelliteState;
 use crate::seat::WLCSeatState;
@@ -47,6 +48,7 @@ use std::sync::Arc;
 mod bridge;
 mod ddm;
 mod egl;
+mod ime;
 mod java_types;
 mod output;
 mod process;
@@ -79,6 +81,8 @@ pub struct WLCState {
     pub data: WLCDataState,
     pub output: WLCOutput,
     pub satellite: Option<SatelliteState>,
+    /// Input method scaffold (no-op until P1/P2). See `docs/IME.md`.
+    pub ime: ImeState,
 }
 
 #[derive(Default)]
@@ -113,6 +117,9 @@ impl WLCState {
         let output = WLCOutput::new(&disp);
         output.create_global();
 
+        let mut ime = ImeState::new();
+        ime.create_globals(&disp);
+
         Self {
             display_handle: disp.clone(),
             socket: OsString::new(),
@@ -128,6 +135,7 @@ impl WLCState {
             data,
             output,
             satellite: None,
+            ime,
         }
     }
 }

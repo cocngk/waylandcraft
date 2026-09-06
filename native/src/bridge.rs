@@ -1303,8 +1303,15 @@ fn keyboard_focus<'local>(
     instance.state.data.update_clipboard_client(client);
 
     match surface {
-        Some(s) => instance.state.seat.keyboard_focus(s),
-        None => instance.state.seat.keyboard_unfocus(),
+        Some(s) => {
+            instance.state.seat.keyboard_focus(s.clone());
+            // IME scaffold: track text focus (no-op protocol until P1)
+            instance.state.ime.set_focus(s);
+        }
+        None => {
+            instance.state.seat.keyboard_unfocus();
+            instance.state.ime.clear_focus();
+        }
     };
 
     instance
@@ -1376,7 +1383,11 @@ fn keyboard_input<'local>(
         }
     };
 
-    instance.state.seat.keyboard_key(scancode, action);
+    // IME scaffold: if handle_key returns true, skip raw wl_keyboard delivery.
+    // Currently always false (no grab / no host backend).
+    if !instance.state.ime.handle_key(scancode, action) {
+        instance.state.seat.keyboard_key(scancode, action);
+    }
 
     Ok(())
 }
