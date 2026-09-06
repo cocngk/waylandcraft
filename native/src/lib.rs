@@ -1,6 +1,7 @@
 use crate::bridge::BridgeState;
 use crate::ddm::WLCDataState;
 use crate::egl::EGLHelper;
+use crate::ime::ImeState;
 use crate::output::WLCOutput;
 use crate::satellite::SatelliteState;
 use crate::seat::WLCSeatState;
@@ -47,6 +48,7 @@ use std::sync::Arc;
 mod bridge;
 mod ddm;
 mod egl;
+mod ime;
 mod java_types;
 mod output;
 mod process;
@@ -79,6 +81,8 @@ pub struct WLCState {
     pub data: WLCDataState,
     pub output: WLCOutput,
     pub satellite: Option<SatelliteState>,
+    /// Input method scaffold (no-op until P1/P2). See `docs/IME.md`.
+    pub ime: ImeState,
 }
 
 #[derive(Default)]
@@ -113,6 +117,9 @@ impl WLCState {
         let output = WLCOutput::new(&disp);
         output.create_global();
 
+        let mut ime = ImeState::new();
+        ime.create_globals(&disp);
+
         Self {
             display_handle: disp.clone(),
             socket: OsString::new(),
@@ -128,6 +135,7 @@ impl WLCState {
             data,
             output,
             satellite: None,
+            ime,
         }
     }
 }
@@ -161,7 +169,9 @@ impl CompositorHandler for WLCState {
         &client.get_data::<WLCClient>().unwrap().compositor_state
     }
 
-    fn commit(&mut self, _surface: &WlSurface) {}
+    fn commit(&mut self, surface: &WlSurface) {
+        crate::ddm::on_commit(self, surface);
+    }
 }
 
 impl BufferHandler for WLCState {
@@ -185,6 +195,7 @@ impl DmabufHandler for WLCState {
         _dmabuf: Dmabuf,
         notifier: ImportNotifier,
     ) {
+        // Always succeed; actual import happens later in the renderer path.
         let _ = notifier.successful::<WLCState>();
     }
 }
@@ -195,36 +206,25 @@ impl XdgShellHandler for WLCState {
     }
 
     fn new_toplevel(&mut self, surface: ToplevelSurface) {
+        surface.with_pending_state(|state| {
+            state.size = Some((800, 600).into());
+        });
         surface.send_configure();
     }
 
-    fn new_popup(
+    fn new_popup(&mut self, _surface: PopupSurface, _positioner: PositionerState) {}
+
+    fn grab(
         &mut self,
-        surface: PopupSurface,
-        positioner: PositionerState,
+        _surface: PopupSurface,
+        _seat: WlSeat,
+        _serial: Serial,
     ) {
-        surface.with_pending_state(|state| {
-            state.geometry = positioner.get_geometry();
-            state.positioner = positioner;
-        });
-        surface.send_configure().expect("popup initial configure");
     }
 
-    fn grab(&mut self, _surface: PopupSurface, _seat: WlSeat, _serial: Serial) {
-    }
+    fn toplevel_destroyed(&mut self, _surface: ToplevelSurface) {}
 
-    fn reposition_request(
-        &mut self,
-        surface: PopupSurface,
-        positioner: PositionerState,
-        token: u32,
-    ) {
-        surface.with_pending_state(|state| {
-            state.geometry = positioner.get_geometry();
-            state.positioner = positioner;
-        });
-        surface.send_repositioned(token);
-    }
+    fn popup_destroyed(&mut self, _surface: PopupSurface) {}
 
     fn minimize_request(&mut self, surface: ToplevelSurface) {
         self.requests.minimize.push(surface);
