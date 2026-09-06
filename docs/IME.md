@@ -1,9 +1,8 @@
 # WaylandCraft IME (Input Method) Architecture
 
-> Status: **scaffold only** (branch `feat/ime-scaffold`).  
-> Runtime behavior is unchanged until P1/P2 land. This document is the
-> roadmap for making Fcitx5 / fcitx5-lotus (and other IMEs) work inside
-> nested Wayland sessions.
+> Status: **P0 scaffold + P1 relay logic** (branch `feat/ime-scaffold`).  
+> Wayland globals are still **not** advertised; `handle_key` does not consume keys.  
+> Runtime keyboard path is unchanged until wire adapters (ti3/im2) land.
 
 ## Why IME fails today
 
@@ -21,23 +20,19 @@ Nested focus is also isolated: the **host** IME often never sees focus
 changes inside WaylandCraft. That is an ecosystem limitation; a **DBus
 Fcitx5 backend** bypasses it by talking to Fcitx5 directly.
 
-## Module layout (target)
+## Module layout
 
 ```
 native/src/ime/
-  mod.rs              # ImeState facade, globals, handle_key / set_focus
-  relay.rs            # Pure logic: serial, FIFO batches, done discipline
-  text_input_v3.rs    # Server wire: zwp_text_input_manager_v3
-  input_method_v2.rs  # Server wire: zwp_input_method_manager_v2
-  host/               # Optional passthrough backends (P2+)
-    mod.rs
-    dbus_fcitx5.rs    # Preferred for Lotus / Fcitx5 users
+  mod.rs              # ImeState facade — DONE (scaffold)
+  relay.rs            # Pure logic: serial, FIFO, lifecycle — DONE (unit tests)
+  text_input_v3.rs    # Server wire — TODO
+  input_method_v2.rs  # Server wire — TODO
+  host/               # Passthrough backends — TODO (P2)
+    dbus_fcitx5.rs    # Preferred for Lotus / Fcitx5
     dbus_ibus.rs
-    wayland_ti3.rs    # Client on host text-input-v3 when available
+    wayland_ti3.rs
 ```
-
-Scaffold in this PR only adds `mod.rs` with no-op methods wired from
-`lib.rs` and `bridge.rs`.
 
 ## Data flow (target)
 
@@ -54,10 +49,10 @@ IME preedit/commit/delete + commit(serial)
 ```
 App enable → host backend FocusIn / Activate
 Keys → ProcessKeyEvent (DBus) or host ti3
-Host Commit/Preedit → HostEvent FIFO → Relay → ti3 + done
+Host Commit/Preedit → flush_host_batch → ti3 + done
 ```
 
-### Key path integration points (existing code)
+### Key path integration points
 
 | Location | Role |
 |----------|------|
@@ -65,55 +60,61 @@ Host Commit/Preedit → HostEvent FIFO → Relay → ti3 + done
 | `bridge::keyboard_focus` | `ime.set_focus` / `clear_focus` after seat focus |
 | `seat::keyboard_key` | Later: skip raw key if IME grab consumed it |
 
-## Serial rules (must not be violated in P1)
+Apply bridge hooks from `docs/IME_BRIDGE_PATCH.md` if not already applied.
+
+## Serial rules (implemented in `relay.rs`)
 
 | Direction | Counter | Meaning |
 |-----------|---------|---------|
-| Compositor → App | `done(serial)` | serial = commits received on that text_input object |
-| IME → Compositor | `commit(serial)` | must equal dones sent on that input_method object |
-| Focus A→B | deactivate A, clear pending, then activate B | never treat new enable as continuation of A |
+| Compositor → App | `done_serial` on [`FlushBatch`] | for `ti3.done(serial)` |
+| IME → Compositor | `ime_done_count` | IME `commit(serial)` must match or batch is **dropped** |
+| Focus A→B | `focus_lost` then new enable | pending cleared; deactivate bumps IME serial |
 
-Missing `done` after `commit_string`/`preedit_string` is a common cause of
-"swallowed" characters (client buffers until `done`).
+Missing `done` after commit/preedit is a classic cause of swallowed characters.
+
+### Run relay unit tests
+
+```bash
+cd native && cargo test --lib ime::relay
+```
 
 ## Implementation phases
 
-### P0 — Scaffold (this PR)
+### P0 — Scaffold
 
 - [x] `docs/IME.md`
 - [x] `native/src/ime/mod.rs` with `ImeState`
 - [x] `WLCState.ime` + `create_globals` hook in `lib.rs`
-- [x] Focus / key hooks in `bridge.rs` (no behavior change)
+- [x] Bridge focus/key hook instructions (`IME_BRIDGE_PATCH.md`)
 
 ### P1 — Protocol + relay
 
-- [ ] `relay.rs` pure state machine + unit tests
+- [x] `relay.rs` pure state machine + unit tests
 - [ ] Advertise `zwp_text_input_manager_v3` and `zwp_input_method_manager_v2`
-- [ ] Do **not** advertise v1 managers (avoids IBus/Fcitx falling back to dead paths)
-- [ ] Wire enable/disable, surrounding text, cursor rect
-- [ ] Integration tests with mock ti3 client + mock im2 client if feasible
+- [ ] Do **not** advertise v1 managers
+- [ ] Wire enable/disable, surrounding text, cursor rect to relay
+- [ ] Integration tests with mock ti3 + im2 clients (optional)
 
 ### P2 — `dbus-fcitx5` (highest value for Lotus)
 
-- [ ] Backend using `org.fcitx.Fcitx5` DBus (InputContext, FocusIn/Out, key, CommitString, preedit signals)
-- [ ] Probe order: `wayland-ti3` → `dbus-fcitx5` → `dbus-ibus` → Unsupported + log
-- [ ] Async key submit without blocking the render thread (one-frame latency OK)
+- [ ] Backend using `org.fcitx.Fcitx5` DBus
+- [ ] Probe order: `wayland-ti3` → `dbus-fcitx5` → `dbus-ibus` → Unsupported
+- [ ] Async key submit without blocking the render thread
 
 ### P3 — UX
 
 - [ ] `waylandcraft-ime.log`
 - [ ] Clear Unsupported diagnostics
-- [ ] Optional prefer-XWayland launch hints for stubborn native Wayland apps
-- [ ] Candidate popup: short-term on host desktop; in-game render later
+- [ ] Optional prefer-XWayland launch hints
+- [ ] Candidate popup (host short-term; in-game later)
 
-## Known limitations (even after full implementation)
+## Known limitations
 
-1. **Nested host focus**: pure host Wayland IME without DBus may still miss nested surfaces; DBus backends mitigate this.
-2. **IME popup surfaces** need extra rendering work to appear inside Minecraft.
+1. **Nested host focus**: pure host Wayland IME without DBus may miss nested surfaces; DBus backends mitigate this.
+2. **IME popup surfaces** need extra rendering to appear inside Minecraft.
 3. **X11/XWayland apps** often work earlier via XIM than pure Wayland clients.
 
 ## References
 
 - [Using Fcitx 5 on Wayland](https://www.fcitx-im.org/index.php?title=Using_Fcitx_5_on_Wayland)
 - text-input-unstable-v3 / input-method-unstable-v2 protocol specs
-- Related research in other nested-compositor projects (IBus focus isolation under Mutter/KWin)
